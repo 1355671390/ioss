@@ -1,8 +1,7 @@
 platform :ios, '13.0'
 
 target 'Runner' do
-  # 强制使用静态链接，这能解决 90% 的头文件找不到问题
-  use_frameworks! :linkage => :static
+  use_frameworks! :linkage => :static # 强制静态链接
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
@@ -15,9 +14,11 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-      # 允许非签名编译
+      # 暴力关闭 Pods 的签名要求
       config.build_settings['CODE_SIGNING_REQUIRED'] = "NO"
       config.build_settings['CODE_SIGNING_ALLOWED'] = "NO"
+      # 注入头文件路径，确保桥接文件能找到 PTChannel.h
+      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Headers/Public/peertalk'
     end
   end
 end
