@@ -26,6 +26,7 @@ workflows:
           cd ..
       - name: Build Flutter iOS
         script: |
+        sed -i '' 's/SWIFT_OBJC_BRIDGING_HEADER = [^;]*;//g' ios/Runner.xcodeproj/project.pbxproj
           # 核心编译命令：使用 release 模式但不签名
           # 加上 --no-case-sensitive-search 避免某些路径大小写问题
           flutter build ios --release --no-codesign
