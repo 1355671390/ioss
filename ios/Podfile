@@ -1,13 +1,24 @@
 platform :ios, '13.0'
 
 target 'Runner' do
-  # 强制使用静态链接，彻底绕开模块化报错
   use_frameworks! :linkage => :static
 
-  # 1. 核心：直接手动引入 Peertalk，不依赖 Flutter 脚本
-  pod 'peertalk', :git => 'https://github.com/rsms/peertalk.git'
+  # --- 暴力修复：直接在本地定义 peertalk 的规格 ---
+  pod 'peertalk', :podspec => {
+    :name => 'peertalk',
+    :version => '1.0.0',
+    :summary => 'iOS USB communication',
+    :homepage => 'https://github.com/rsms/peertalk',
+    :license => 'MIT',
+    :authors => { 'rsms' => 'rsms' },
+    :source => { :git => 'https://github.com/rsms/peertalk.git', :tag => 'master' },
+    :source_files => 'peertalk/*.{h,m}',
+    :public_header_files => 'peertalk/*.h',
+    :requires_arc => true,
+    :platforms => { :ios => '13.0' }
+  }
 
-  # 2. 如果你有其他 Flutter 插件，这一行会尝试安装它们（如果失败会自动跳过）
+  # 自动加载其他 Flutter 插件（如果存在）
   begin
     setup_path = File.expand_path(File.join('..', '..', 'packages', 'flutter_tools', 'bin', 'podhelper'), __dir__)
     if File.exist?(setup_path)
@@ -15,7 +26,6 @@ target 'Runner' do
       flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
     end
   rescue => e
-    puts "忽略 Flutter 插件自动化安装: #{e.message}"
   end
 end
 
@@ -25,7 +35,7 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       config.build_settings['CODE_SIGNING_REQUIRED'] = "NO"
       config.build_settings['CODE_SIGNING_ALLOWED'] = "NO"
-      # 注入头文件搜索路径，确保桥接文件能看到 PTChannel.h
+      # 确保头文件路径能被找到
       config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Headers/Public/peertalk'
     end
   end
