@@ -1,29 +1,21 @@
 platform :ios, '13.0'
 
-# 忽略 CocoaPods 的警告
-install! 'cocoapods', :deterministic_uuids => false
-
 target 'Runner' do
-  use_frameworks! 
+  # 强制使用静态链接，这能解决 90% 的头文件找不到问题
+  use_frameworks! :linkage => :static
   use_modular_headers!
 
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
-  # --- 核心修改：确保它在 target 'Runner' 内部 ---
   pod 'peertalk', :git => 'https://github.com/rsms/peertalk.git'
-  # -------------------------------------------
-
 end
 
 post_install do |installer|
   installer.pods_project.targets.each do |target|
     flutter_additional_ios_build_settings(target)
-    
     target.build_configurations.each do |config|
-      # 统一版本号，防止版本冲突
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-      # 禁用签名要求（针对 Pods 库）
-      config.build_settings['ARCHS'] = 'arm64' # 强制 64 位真机架构
+      # 允许非签名编译
       config.build_settings['CODE_SIGNING_REQUIRED'] = "NO"
       config.build_settings['CODE_SIGNING_ALLOWED'] = "NO"
     end
