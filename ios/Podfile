@@ -3,22 +3,10 @@ platform :ios, '13.0'
 target 'Runner' do
   use_frameworks! :linkage => :static
 
-  # --- 暴力修复：直接在本地定义 peertalk 的规格 ---
-  pod 'peertalk', :podspec => {
-    :name => 'peertalk',
-    :version => '1.0.0',
-    :summary => 'iOS USB communication',
-    :homepage => 'https://github.com/rsms/peertalk',
-    :license => 'MIT',
-    :authors => { 'rsms' => 'rsms' },
-    :source => { :git => 'https://github.com/rsms/peertalk.git', :tag => 'master' },
-    :source_files => 'peertalk/*.{h,m}',
-    :public_header_files => 'peertalk/*.h',
-    :requires_arc => true,
-    :platforms => { :ios => '13.0' }
-  }
+  # 1. 强制引用本地路径，不给 CocoaPods 任何报错的机会
+  pod 'peertalk', :path => 'peertalk_local'
 
-  # 自动加载其他 Flutter 插件（如果存在）
+  # 2. 这里的脚本只在本地环境存在时才运行，Codemagic 环境下会因我们手动创建了 xcconfig 而跳过报错
   begin
     setup_path = File.expand_path(File.join('..', '..', 'packages', 'flutter_tools', 'bin', 'podhelper'), __dir__)
     if File.exist?(setup_path)
@@ -26,6 +14,7 @@ target 'Runner' do
       flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
     end
   rescue => e
+    # 静默处理
   end
 end
 
@@ -35,8 +24,6 @@ post_install do |installer|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
       config.build_settings['CODE_SIGNING_REQUIRED'] = "NO"
       config.build_settings['CODE_SIGNING_ALLOWED'] = "NO"
-      # 确保头文件路径能被找到
-      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Headers/Public/peertalk'
     end
   end
 end
