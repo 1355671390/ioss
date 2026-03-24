@@ -14,21 +14,26 @@ workflows:
       - name: Prepare Pods
         script: |
           flutter clean
-          rm -rf ios/Pods
-          rm -f ios/Podfile.lock
-          cd ios && pod install --repo-update
-      - name: Fix Xcode Bridging Header Path
+          rm -rf build
+          cd ios
+          rm -rf Pods
+          rm -f Podfile.lock
+          pod install --repo-update
+      - name: Fix Xcode Config
         script: |
-          # 这一行非常关键：强制将项目设置中的桥接文件路径指向我们创建的文件
+          # 修复项目文件中的桥接文件路径引用
           sed -i '' 's/SWIFT_OBJC_BRIDGING_HEADER = [^;]*;/SWIFT_OBJC_BRIDGING_HEADER = Runner\/Runner-Bridging-Header.h;/g' ios/Runner.xcodeproj/project.pbxproj
+          # 移除项目文件中可能存在的签名锁定
+          sed -i '' 's/CODE_SIGN_STYLE = Apple;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
       - name: Build Flutter iOS
         script: |
-          # 核心编译
+          # 执行 release 编译但不签名
           flutter build ios --release --no-codesign
       - name: Export IPA
         script: |
           set -e
           mkdir -p Payload
+          # 确保将编译产物复制并重命名为 IPA
           cp -r build/ios/iphoneos/Runner.app Payload/
           zip -r Runner.ipa Payload
           mv Runner.ipa $CM_EXPORT_DIR/
