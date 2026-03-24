@@ -6,45 +6,31 @@ workflows:
     environment:
       flutter: stable
       xcode: latest
-      cocoapods: default # 确保启用 cocoapods 环境
+      cocoapods: default
     scripts:
       - name: Get Flutter packages
         script: |
           flutter pub get
-      - name: Force Clean and Prepare
+      - name: Prepare Pods
         script: |
-          # 彻底删除旧的构建残留
           flutter clean
-          rm -rf build
-          # 进入 ios 目录清理并重新安装 Pods
-          cd ios
-          rm -rf Pods
-          rm -rf Podfile.lock
-          rm -rf .symlinks
-          # 关键步骤：强制安装 Peertalk 依赖
-          pod install --repo-update
-          cd ..
+          rm -rf ios/Pods
+          rm -f ios/Podfile.lock
+          cd ios && pod install --repo-update
+      - name: Fix Xcode Bridging Header Path
+        script: |
+          # 这一行非常关键：强制将项目设置中的桥接文件路径指向我们创建的文件
+          sed -i '' 's/SWIFT_OBJC_BRIDGING_HEADER = [^;]*;/SWIFT_OBJC_BRIDGING_HEADER = Runner\/Runner-Bridging-Header.h;/g' ios/Runner.xcodeproj/project.pbxproj
       - name: Build Flutter iOS
         script: |
-          sed -i '' 's/SWIFT_OBJC_BRIDGING_HEADER = [^;]*;//g' ios/Runner.xcodeproj/project.pbxproj
-          # 核心编译命令：使用 release 模式但不签名
-          # 加上 --no-case-sensitive-search 避免某些路径大小写问题
+          # 核心编译
           flutter build ios --release --no-codesign
-      - name: Post-build (Convert to IPA)
+      - name: Export IPA
         script: |
-          set -e # 遇到错误立即停止
-          # 准备导出目录
+          set -e
           mkdir -p Payload
-          # 确认文件存在后再复制
-          if [ -d "build/ios/iphoneos/Runner.app" ]; then
-            cp -r build/ios/iphoneos/Runner.app Payload/
-            # 压缩成 ipa
-            zip -r Runner.ipa Payload
-            # 移动到 Codemagic 指定的构件导出目录
-            mv Runner.ipa $CM_EXPORT_DIR/
-          else
-            echo "Error: Runner.app not found. Build might have failed."
-            exit 1
-          fi
+          cp -r build/ios/iphoneos/Runner.app Payload/
+          zip -r Runner.ipa Payload
+          mv Runner.ipa $CM_EXPORT_DIR/
     artifacts:
       - $CM_EXPORT_DIR/Runner.ipa
