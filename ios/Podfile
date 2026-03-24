@@ -1,11 +1,32 @@
+# -----------------------------------------------------------------------------
+# 完整 Podfile - 直接替换原有内容
+# -----------------------------------------------------------------------------
 platform :ios, '13.0'
 
+# 导入 Flutter 预设脚本
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first."
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/\AFLUTTER_ROOT\=(.*)\z/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try delete Generated.xcconfig and run flutter pub get"
+end
+
+require File.expand_path(File.join('..', '..', 'packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
 target 'Runner' do
-  use_frameworks! :linkage => :static # 强制静态链接
+  use_frameworks! :linkage => :static
   use_modular_headers!
 
+  # 安装所有 Flutter 插件的 Pods
   flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
 
+  # 显式添加 Peertalk 依赖
   pod 'peertalk', :git => 'https://github.com/rsms/peertalk.git'
 end
 
@@ -14,11 +35,11 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '13.0'
-      # 暴力关闭 Pods 的签名要求
+      # 暴力关闭 Pods 的签名要求，防止由于未签名导致的链接失败
       config.build_settings['CODE_SIGNING_REQUIRED'] = "NO"
       config.build_settings['CODE_SIGNING_ALLOWED'] = "NO"
-      # 注入头文件路径，确保桥接文件能找到 PTChannel.h
-      config.build_settings['HEADER_SEARCH_PATHS'] = '$(inherited) ${PODS_ROOT}/Headers/Public/peertalk'
+      # 允许非模块化包含
+      config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
     end
   end
 end
