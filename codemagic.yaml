@@ -8,30 +8,30 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
-      - name: Initialize and Fake Config
+      - name: Initialize Environment
         script: |
           flutter pub get
-          # 关键：如果文件不存在，手动创建一个空文件避开 Podfile 的报错
+          # 强制创建一个空的 Generated.xcconfig 防止 Podfile 报错
           mkdir -p ios/Flutter
-          touch ios/Flutter/Generated.xcconfig
           echo "FLUTTER_ROOT=/" > ios/Flutter/Generated.xcconfig
       - name: Install Pods
         script: |
           cd ios
           rm -rf Pods
           rm -f Podfile.lock
-          pod install --repo-update
-      - name: Sync Xcode Project
+          # 使用 --verbose 方便报错时看到最详细的原因
+          pod install --repo-update --verbose
+      - name: Xcode Path Patch
         script: |
-          # 再次确认桥接文件引用路径正确
+          # 修正桥接文件路径
           sed -i '' 's/SWIFT_OBJC_BRIDGING_HEADER = [^;]*;/SWIFT_OBJC_BRIDGING_HEADER = Runner\/Runner-Bridging-Header.h;/g' ios/Runner.xcodeproj/project.pbxproj
-          # 移除签名风格锁定
+          # 强制改为手动签名
           sed -i '' 's/CODE_SIGN_STYLE = Apple;/CODE_SIGN_STYLE = Manual;/g' ios/Runner.xcodeproj/project.pbxproj
-      - name: Final Build
+      - name: Build Runner
         script: |
-          # 使用真正的编译命令
+          # 最终的编译打包
           flutter build ios --release --no-codesign
-      - name: Export IPA
+      - name: Package IPA
         script: |
           set -e
           mkdir -p Payload
