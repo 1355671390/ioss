@@ -28,7 +28,7 @@ workflows:
         script: |
           # 核心编译命令：使用 release 模式但不签名
           # 加上 --no-case-sensitive-search 避免某些路径大小写问题
-          flutter build ios --release --no-codesign --no-case-sensitive-search
+          flutter build ios --release --no-codesign
       - name: Post-build (Convert to IPA)
         script: |
           set -e # 遇到错误立即停止
