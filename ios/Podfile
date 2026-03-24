@@ -1,0 +1,11 @@
+platform :ios, '12.0' # 建议设为 12.0 或更高
+
+target 'Runner' do
+  use_frameworks!
+  use_modular_headers!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+
+  # 添加这一行
+  pod 'peertalk', :git => 'https://github.com/rsms/peertalk.git'
+end
